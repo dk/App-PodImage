@@ -93,8 +93,7 @@ __DATA__
 
 =head1 NAME
 
-podimage - embed images in pod so they display nicely in html, also 
-on CPAN and MetaCPAN.
+podimage - embed images in pod for CPAN and MetaCPAN
 
 =head1 OPTIONS
 
