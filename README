@@ -1,6 +1,5 @@
 NAME
-    podimage - embed images in pod so they display nicely in html, also on
-    CPAN and MetaCPAN.
+    podimage - embed images in pod for CPAN and MetaCPAN
 
 OPTIONS
     format: podimage [options] file.pod
@@ -29,7 +28,7 @@ EXAMPLE
             GMOW1nbx4+xKwFdAGvzNMeHuYqV+aTxDWlGpIKV4l0pUipLR+3AOUCRm5+EfKwMshIwF1
             kFGECBTZJwVt/Je8BwUrPJSVzS4Hk3y20eOIRL1iCVPia4rk/x3SMtb5ZTDe7ti5EkWJG
             RNscg4yEqm4tBdawTW2bGrdJirh799ZOPoV5Td4gPKYZdm2PperwAAAABJRU5ErkJggg=
-            =" title="img-tag, normal" alt="Inlineimage">
+            =">
 
     which should look like this:
 
