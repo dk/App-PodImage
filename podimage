@@ -1,0 +1,165 @@
+#!perl
+
+# Thanks to LanX for the idea: http://www.perlmonks.org/?node_id=729067
+
+use strict;
+use warnings;
+use MIME::Base64 qw(encode_base64);
+use Getopt::Long;
+
+our $VERSION = 0.01;
+
+my @inc = ('.');
+
+sub find_img
+{
+	my $file = shift;
+	for (@inc) {
+		next unless -f "$_/$file";
+		return "$_/$file";
+	}
+	die "Cannot find image $file\n";
+}
+
+sub usage
+{
+	print <<USAGE;
+
+$0 - convert html 'img src' references to inline images
+
+format: $0 [options] file.pod
+
+options:
+	- inline -- replace the original file
+
+USAGE
+	exit 1;
+}
+
+my %opt;
+GetOptions(
+	\%opt,
+	'inline'
+) or usage;
+
+
+usage unless @ARGV;
+
+my $f = shift @ARGV;
+push @inc, $1 if $f =~ /^(.*?)\/[^\/]+$/;
+
+
+my $result = '';
+my $replaced;
+open F, '<', $f or die "Cannot open $f:$!\n";
+while (<F>) {
+	if ( m/(=for html.*?img\s+src\s*\=\s*['"])(.*?\.)(\w+)(['"].*$)/) {
+		my ( $pre, $file, $ext, $post ) = ($1,$2,$3,$4);
+		my $image = find_img($file . $ext);
+		unless ( open IMG, '<', $image ) {
+			warn "** Cannot open $image: $!\n";
+			goto CONTINUE;
+		}
+
+		warn "$image inlined\n";
+
+		local $/;
+		my $mime = encode_base64(<IMG>);
+		chomp $mime;
+		$mime =~ s/\n/\n\t/g;
+		$_ = $pre . "data:image/$ext;base64,\n\t" . $mime . $post . "\n";
+		close IMG;
+		$replaced++;
+	}
+CONTINUE:	
+	$result .= $_;
+}
+close F;
+
+if ( $opt{inline}) {
+	if ( $replaced ) {
+		rename $f, "$f.bak" or die "Cannot rename $f to $f.bak:$!\n";
+		open F, ">", $f or die "Cannot write to $f:$!\n";
+		print F $result;
+		close F;
+	} else {
+		warn "** There are no images to be inlined in $f\n";
+	}
+} else {
+	print $result;
+}
+
+__DATA__
+
+=pod
+
+=head1 NAME
+
+podimage - embed images in pod so they display nicely in html, also 
+on CPAN and MetaCPAN.
+
+=head1 OPTIONS
+
+format: podimage [options] file.pod
+
+options:
+	- inline -- replace the original file
+
+=head1 EXAMPLE
+
+Example:
+
+In your pod, write this:
+
+  =for html <img src="index.png">
+
+and then run
+
+  podimage example.pod | pod2html - > example.html
+
+you'll get this:
+
+  =for html <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAY
+	AAAAeP4ixAAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAALEwAA
+	CxMBAJqcGAAAAAd0SU1FB9gEEgIJDgjXTxYAAAE3SURBVGje7VhBDsMwCAPU/3+ZXbdKC
+	RDMlLRwjJBqg4lpWFWVioOZqz9BQg+JxxC5bhKAaWAkWVVloGS1pXWEtKJSYfB19C2VqB
+	QlqXetJDE7DxOxwCLIWGA9ZAQBMkPGW3Er7/m3VrTKK13xdsOT3z5yDJGoR6x4SnRdmeW
+	/Q1reKmcc3tsVK0+yIBFrigXSQ1YyFQev/Zzp2FU5zNXD3z6yc3C/orS0mshcvkRUPiN/
+	GMOW1nbx4+xKwFdAGvzNMeHuYqV+aTxDWlGpIKV4l0pUipLR+3AOUCRm5+EfKwMshIwF1
+	kFGECBTZJwVt/Je8BwUrPJSVzS4Hk3y20eOIRL1iCVPia4rk/x3SMtb5ZTDe7ti5EkWJG
+	RNscg4yEqm4tBdawTW2bGrdJirh799ZOPoV5Td4gPKYZdm2PperwAAAABJRU5ErkJggg=
+	=" title="img-tag, normal" alt="Inlineimage">
+
+which should look like this:
+
+=for html <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAY
+	AAAAeP4ixAAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAALEwAA
+	CxMBAJqcGAAAAAd0SU1FB9gEEgIJDgjXTxYAAAE3SURBVGje7VhBDsMwCAPU/3+ZXbdKC
+	RDMlLRwjJBqg4lpWFWVioOZqz9BQg+JxxC5bhKAaWAkWVVloGS1pXWEtKJSYfB19C2VqB
+	QlqXetJDE7DxOxwCLIWGA9ZAQBMkPGW3Er7/m3VrTKK13xdsOT3z5yDJGoR6x4SnRdmeW
+	/Q1reKmcc3tsVK0+yIBFrigXSQ1YyFQev/Zzp2FU5zNXD3z6yc3C/orS0mshcvkRUPiN/
+	GMOW1nbx4+xKwFdAGvzNMeHuYqV+aTxDWlGpIKV4l0pUipLR+3AOUCRm5+EfKwMshIwF1
+	kFGECBTZJwVt/Je8BwUrPJSVzS4Hk3y20eOIRL1iCVPia4rk/x3SMtb5ZTDe7ti5EkWJG
+	RNscg4yEqm4tBdawTW2bGrdJirh799ZOPoV5Td4gPKYZdm2PperwAAAABJRU5ErkJggg=
+	=" title="img-tag, normal" alt="Inlineimage"><!--
+
+     [*]
+  [*]
+
+=for html <--
+
+Note: You can also inline your images directly in the pod.  If all images were
+inlined already, the file is not touched - that's for dumb version control
+systems.
+
+  podimage -i example.pod
+
+=head1 AUTHOR
+
+Dmitry Karasik E<lt>dmitry@karasik.eu.orgE<gt>
+
+=cut
+
+1;
+
+

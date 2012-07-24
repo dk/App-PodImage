@@ -1,0 +1,7 @@
+=pod
+
+Below should be an image
+
+=for html <img src="index.png">
+
+=cut
